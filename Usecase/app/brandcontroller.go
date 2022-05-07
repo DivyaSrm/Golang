@@ -22,6 +22,7 @@ type brand struct {
 	BrandDescription string `json:branddescription`
 	CreatedBy        string `json:createdby`
 	UpdatedBy        string `json:updatedby`
+	BrandStatus      bool   `json:brandstatus`
 }
 
 var BrandCollection = db().Database("usecase").Collection("brand") // get collection "users" from db() which returns *mongo.Client
@@ -37,13 +38,27 @@ func CreateBrand(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Print(err)
 	}
-	insertResult, err := BrandCollection.InsertOne(context.TODO(), brand)
-	if err != nil {
-		log.Fatal(err)
-	}
+	var result primitive.M //  an unordered representation of a BSON document which is a Map
+	errbrand := BrandCollection.FindOne(context.TODO(), bson.D{{"brandid", brand.Brandid}}).Decode(&result)
+	if errbrand != nil {
+		err5 := SubcategoryCollection.FindOne(context.TODO(), bson.D{{"subcategoryid", brand.Subcategoryid}, {"subcategorystatus", true}}).Decode(&result)
+		fmt.Println("errror", err5)
+		if err5 != nil {
+			json.NewEncoder(w).Encode("subcategory not available")
+		} else {
+			insertResult, err := BrandCollection.InsertOne(context.TODO(), brand)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-	fmt.Println("Inserted a single document: ", insertResult)
-	json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+			fmt.Println("Inserted a single document: ", insertResult)
+			json.NewEncoder(w).Encode(insertResult.InsertedID)
+		}
+
+	} else {
+		json.NewEncoder(w).Encode("id already exist in brand")
+	}
+	// return the mongodb ID of generated document
 
 }
 
@@ -53,14 +68,14 @@ func GetBrand(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	var category category
-	e := json.NewDecoder(r.Body).Decode(&category)
+	var brand brand
+	e := json.NewDecoder(r.Body).Decode(&brand)
 	if e != nil {
 
 		fmt.Print(e)
 	}
 	var result primitive.M //  an unordered representation of a BSON document which is a Map
-	err := BrandCollection.FindOne(context.TODO(), bson.D{{"categoryname", category.CategoryName}}).Decode(&result)
+	err := BrandCollection.FindOne(context.TODO(), bson.D{{"brandid", brand.Brandid}}).Decode(&result)
 	if err != nil {
 
 		fmt.Println(err)

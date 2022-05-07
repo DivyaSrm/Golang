@@ -23,6 +23,7 @@ type subcategory struct {
 	SubcategoryDescription string `json:subcategorydescription`
 	CreatedBy              string `json:createdby`
 	UpdatedBy              string `json:updatedby`
+	SubcategoryStatus      bool   `json:subcategorystatus`
 }
 
 var SubcategoryCollection = db().Database("usecase").Collection("subcategory") // get collection "users" from db() which returns *mongo.Client
@@ -34,17 +35,33 @@ func CreateSubCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json") // for adding Content-type
 
 	var subcategory subcategory
+
 	err := json.NewDecoder(r.Body).Decode(&subcategory) // storing in person variable of type user
 	if err != nil {
 		fmt.Print(err)
 	}
-	insertResult, err := SubcategoryCollection.InsertOne(context.TODO(), subcategory)
-	if err != nil {
-		log.Fatal(err)
-	}
+	var result1 primitive.M //  an unordered representation of a BSON document which is a Map
+	errr := SubcategoryCollection.FindOne(context.TODO(), bson.D{{"subcategoryid", subcategory.Subcategoryid}}).Decode(&result1)
+	if errr != nil {
+		var result primitive.M
+		err5 := categoryCollection.FindOne(context.TODO(), bson.D{{"categoryid", subcategory.Categoryid}, {"categorystatus", true}}).Decode(&result)
+		fmt.Println("errror", err5)
+		if err5 != nil {
+			json.NewEncoder(w).Encode("category not available")
+		} else {
+			fmt.Println(err5)
+			insertResult, err := SubcategoryCollection.InsertOne(context.TODO(), subcategory)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-	fmt.Println("Inserted a single document: ", insertResult)
-	json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+			fmt.Println("Inserted a single document: ", insertResult)
+			json.NewEncoder(w).Encode(insertResult.InsertedID)
+
+		}
+	} else {
+		json.NewEncoder(w).Encode("id already exist")
+	}
 
 }
 

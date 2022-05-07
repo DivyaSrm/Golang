@@ -21,6 +21,7 @@ type category struct {
 	CategoryDescription string `json:categorydescription`
 	CreatedBy           string `json:createdby`
 	UpdatedBy           string `json:updatedby`
+	CategoryStatus      bool   `json:categorystatus`
 }
 
 var categoryCollection = db().Database("usecase").Collection("category") // get collection "users" from db() which returns *mongo.Client
@@ -36,14 +37,20 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Print(err)
 	}
-	insertResult, err := categoryCollection.InsertOne(context.TODO(), category)
-	if err != nil {
-		log.Fatal(err)
+	var result primitive.M
+	err1 := categoryCollection.FindOne(context.TODO(), bson.D{{"categoryid", category.Categoryid}}).Decode(&result)
+	fmt.Println(err1)
+	if err1 != nil {
+		insertResult, err := categoryCollection.InsertOne(context.TODO(), category)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Inserted a single document: ", insertResult)
+		json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+	} else {
+		json.NewEncoder(w).Encode("record not inserted")
 	}
-
-	fmt.Println("Inserted a single document: ", insertResult)
-	json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
-
 }
 
 // Get Profile of a particular User by Name
