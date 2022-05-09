@@ -55,12 +55,22 @@ func CreateSubCategory(w http.ResponseWriter, r *http.Request) {
 				log.Fatal(err)
 			}
 
+			msg := Response{
+				StatusCode:    200,
+				Status:        true,
+				CustomMessage: "record inserted"}
 			fmt.Println("Inserted a single document: ", insertResult)
-			json.NewEncoder(w).Encode(insertResult.InsertedID)
+
+			json.NewEncoder(w).Encode(msg)
 
 		}
 	} else {
-		json.NewEncoder(w).Encode("id already exist")
+		msg := ResponseError{
+			ErrorMessage:  "nil",
+			StatusCode:    200,
+			Status:        false,
+			CustomMessage: "id already exist"}
+		json.NewEncoder(w).Encode(msg)
 	}
 
 }

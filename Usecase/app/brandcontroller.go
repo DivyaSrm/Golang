@@ -41,18 +41,33 @@ func CreateBrand(w http.ResponseWriter, r *http.Request) {
 	var result primitive.M //  an unordered representation of a BSON document which is a Map
 	errbrand := BrandCollection.FindOne(context.TODO(), bson.D{{"brandid", brand.Brandid}}).Decode(&result)
 	if errbrand != nil {
-		err5 := SubcategoryCollection.FindOne(context.TODO(), bson.D{{"subcategoryid", brand.Subcategoryid}, {"subcategorystatus", true}}).Decode(&result)
+		err5 := categoryCollection.FindOne(context.TODO(), bson.D{{"categoryid", brand.Categoryid}, {"categorystatus", true}}).Decode(&result)
 		fmt.Println("errror", err5)
-		if err5 != nil {
-			json.NewEncoder(w).Encode("subcategory not available")
-		} else {
-			insertResult, err := BrandCollection.InsertOne(context.TODO(), brand)
-			if err != nil {
-				log.Fatal(err)
+		if err5 == nil {
+			err6 := SubcategoryCollection.FindOne(context.TODO(), bson.D{{"subcategoryid", brand.Subcategoryid}, {"subcategorystatus", true}}).Decode(&result)
+			if err6 == nil {
+				insertResult, err := BrandCollection.InsertOne(context.TODO(), brand)
+				if err != nil {
+					log.Fatal(err)
+				}
+				msg := Response{
+					StatusCode:    200,
+					Status:        true,
+					CustomMessage: "record inserted"}
+				fmt.Println("Inserted a single document: ", insertResult)
+
+				json.NewEncoder(w).Encode(msg)
+			} else {
+				msg := ResponseError{
+					ErrorMessage:  "nil",
+					StatusCode:    200,
+					Status:        false,
+					CustomMessage: "subcategory not available"}
+				json.NewEncoder(w).Encode(msg)
 			}
 
-			fmt.Println("Inserted a single document: ", insertResult)
-			json.NewEncoder(w).Encode(insertResult.InsertedID)
+		} else {
+			json.NewEncoder(w).Encode("category not available")
 		}
 
 	} else {

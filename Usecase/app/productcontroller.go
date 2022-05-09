@@ -16,11 +16,11 @@ import (
 
 // struct for storing data
 type product struct {
-	Productid   int    `json:productid`
-	ProductName string `json:productname`
-	Product     [3]int `json:product`
-	CreatedBy   string `json:createdby`
-	UpdatedBy   string `json:updatedby`
+	Productid   int            `json:productid`
+	ProductName string         `json:productname`
+	Product     map[string]int `json:product`
+	CreatedBy   string         `json:createdby`
+	UpdatedBy   string         `json:updatedby`
 }
 type ids struct {
 	categoryid    int `json:categoryid`
@@ -37,16 +37,34 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	var product product
 	err := json.NewDecoder(r.Body).Decode(&product) // storing in person variable of type user
-	if err != nil {
+	if err == nil {
 		fmt.Print(err)
 	}
-	insertResult, err := ProductCollection.InsertOne(context.TODO(), product)
-	if err != nil {
-		log.Fatal(err)
-	}
+	var result primitive.M
+	err1 := ProductCollection.FindOne(context.TODO(), bson.D{{"productid", product.Productid}}).Decode(&result)
+	fmt.Println(err1)
+	if err1 == nil {
+		msg := ResponseError{
+			ErrorMessage:  "nil",
+			StatusCode:    200,
+			Status:        false,
+			CustomMessage: "id already exist"}
+		json.NewEncoder(w).Encode(msg)
+	} else {
+		insertResult, err := ProductCollection.InsertOne(context.TODO(), product)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	fmt.Println("Inserted a single document: ", insertResult)
-	json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+		msg := Response{
+			StatusCode:    200,
+			Status:        true,
+			CustomMessage: "record inserted"}
+		fmt.Println("Inserted a single document: ", insertResult)
+
+		json.NewEncoder(w).Encode(msg)
+
+	}
 
 }
 
@@ -91,14 +109,13 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Print(e)
 	}
-	filter := bson.D{{"categoryname", body.Productid}} // converting value to BSON type
-	after := options.After                             // for returning updated document
+	filter := bson.D{{"productid", body.Productid}} // converting value to BSON type
+	after := options.After                          // for returning updated document
 	returnOpt := options.FindOneAndUpdateOptions{
 
 		ReturnDocument: &after,
 	}
-	update := bson.D{{"$set", bson.D{{"productdescription", body.ProductDescription}, {"productname", body.ProductName},
-		{"updatedby", body.UpdatedBy}}}}
+	update := bson.D{{"$set", bson.D{{"productname", body.ProductName}, {"updatedby", body.UpdatedBy}}}}
 	updateResult := ProductCollection.FindOneAndUpdate(context.TODO(), filter, update, &returnOpt)
 
 	var result primitive.M

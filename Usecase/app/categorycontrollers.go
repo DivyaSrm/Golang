@@ -23,6 +23,19 @@ type category struct {
 	UpdatedBy           string `json:updatedby`
 	CategoryStatus      bool   `json:categorystatus`
 }
+type ResponseError struct {
+	ErrorMessage  string `json:"error message"`
+	StatusCode    int    `json:"status code"`
+	Status        bool   `json:"status"`
+	CustomMessage string `json:"customm message"`
+}
+
+type Response struct {
+	//ErrorMessage  string `json:"error message"`
+	StatusCode    int    `json:"status code"`
+	Status        bool   `json:"status"`
+	CustomMessage string `json:"customm message"`
+}
 
 var categoryCollection = db().Database("usecase").Collection("category") // get collection "users" from db() which returns *mongo.Client
 
@@ -39,17 +52,26 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	var result primitive.M
 	err1 := categoryCollection.FindOne(context.TODO(), bson.D{{"categoryid", category.Categoryid}}).Decode(&result)
-	fmt.Println(err1)
-	if err1 != nil {
+	fmt.Println("err", err1, "result", result)
+	if result == nil {
 		insertResult, err := categoryCollection.InsertOne(context.TODO(), category)
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		msg := Response{
+			StatusCode:    200,
+			Status:        true,
+			CustomMessage: "record inserted"}
 		fmt.Println("Inserted a single document: ", insertResult)
-		json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+
+		json.NewEncoder(w).Encode(msg) // return the mongodb ID of generated document
 	} else {
-		json.NewEncoder(w).Encode("record not inserted")
+		msg := ResponseError{
+			ErrorMessage:  "nil",
+			StatusCode:    200,
+			Status:        false,
+			CustomMessage: "custom message"}
+		json.NewEncoder(w).Encode(msg)
 	}
 }
 

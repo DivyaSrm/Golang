@@ -35,13 +35,27 @@ func CreateVariant(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Print(err)
 	}
-	insertResult, err := VariantCollection.InsertOne(context.TODO(), variant)
-	if err != nil {
-		log.Fatal(err)
-	}
+	var result primitive.M //  an unordered representation of a BSON document which is a Map
+	errvariant := VariantCollection.FindOne(context.TODO(), bson.D{{"variantid", variant.Variantid}}).Decode(&result)
+	if errvariant != nil {
+		_, err := VariantCollection.InsertOne(context.TODO(), variant)
+		if err != nil {
+			log.Fatal(err)
+		}
+		msg := Response{
+			StatusCode:    200,
+			Status:        true,
+			CustomMessage: "record inserted"}
 
-	fmt.Println("Inserted a single document: ", insertResult)
-	json.NewEncoder(w).Encode(insertResult.InsertedID) // return the mongodb ID of generated document
+		json.NewEncoder(w).Encode(msg) // return the mongodb ID of generated document
+	} else {
+		msg := ResponseError{
+			ErrorMessage:  "nil",
+			StatusCode:    200,
+			Status:        false,
+			CustomMessage: "record not inserted"}
+		json.NewEncoder(w).Encode(msg)
+	}
 
 }
 
@@ -98,8 +112,12 @@ func UpdateVariant(w http.ResponseWriter, r *http.Request) {
 
 	var result primitive.M
 	_ = updateResult.Decode(&result)
+	if result == nil {
+		json.NewEncoder(w).Encode(result)
+	} else {
+		json.NewEncoder(w).Encode("record not available")
+	}
 
-	json.NewEncoder(w).Encode(result)
 }
 
 //Delete Profile of User
